@@ -1,0 +1,57 @@
+*
+!.gitignore
+# Laravel specific
+/vendor/
+/node_modules/
+/public/storage
+/public/hot
+/storage/*.key
+/.env
+/.env.backup
+/.phpunit.result.cache
+/docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+
+# Vue specific
+/dist/
+/.quasar
+/src-cordova/www/
+/src-cordova/platforms/
+/src-cordova/plugins/
+
+# General
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.sublime-*
+*.log
+*.sql
+*.sqlite
+*.swo
+*.swp
+*.zip
+*.tar.gz
+*.rar
+
+# Composer
+/composer.lock
+
+# NPM/Yarn
+package-lock.json
+yarn.lock
+
+# Testing
+/coverage
+.phpunit.result.cache
+
+# Local development
+docker-compose.override.yml
+
+# Debugging
+debugbar.json
