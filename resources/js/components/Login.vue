@@ -43,7 +43,7 @@ export default {
       email: '',
       password: '',
       errorMessage: '',
-      loading: false
+      loading: false,
     };
   },
   methods: {

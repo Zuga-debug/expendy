@@ -119,24 +119,23 @@ onMounted(fetchSummary);
 </script>
 
 <template>
-  <div>
+  <div class="text-gray-400">
     <h2 class="text-xl font-bold mb-4">Dashboard</h2>
 
     <div v-if="loading">Loading...</div>
-    <div v-else>
-      <p><strong>Total Expenses:</strong> ₦{{ summary.total_expenses }}</p>
-      <p><strong>Categories:</strong> {{ summary.categories_count }}</p>
+    <div v-else-if="summary">
+      <p><strong>Total Expenses:</strong> ₦{{ summary.total_expenses ?? 0 }}</p>
+      <p><strong>Categories:</strong> {{ summary.categories_count ?? 0 }}</p>
 
       <h3 class="mt-4 font-semibold">Latest Transactions</h3>
       <ul>
-        <li v-for="expense in summary.latest_expenses" :key="expense.id">
+        <li v-for="expense in summary.latest_expenses || []" :key="expense.id">
           ₦{{ expense.amount }} - {{ expense.description }}
         </li>
       </ul>
     </div>
+    <div v-else>
+      <p class="text-red-500">Error loading dashboard data. Try again later.</p>
+    </div>
   </div>
 </template>
-
-
-
- 

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Expendy</title>
 
-    <link href="{{ asset('Expendy_img.png') }}" rel="icon" type="image/png">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+<link rel="shortcut icon" href="Expendy_img_2.ico" type="image/x-icon">  
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
     <div id="app"></div>

@@ -50,6 +50,7 @@ export default {
         password_confirmation: '',
       },
       errorMessage: '',
+      loading:false,
     };
   },
   methods: {
