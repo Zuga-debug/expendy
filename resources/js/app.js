@@ -8,6 +8,7 @@ import * as lucide from 'lucide-vue-next';
 
 
 
+
 const app = createApp({
     template: '<router-view></router-view>'
 });

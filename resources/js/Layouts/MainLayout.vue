@@ -25,9 +25,9 @@
         </div>
       </div>
 
-      <button @click="toggleDarkMode" class="mt-4 px-4 py-2 bg-gray-800 text-white rounded">
+      <!-- <button @click="toggleDarkMode" class="mt-4 px-4 py-2 bg-gray-800 text-white rounded">
   Toggle Dark Mode
-</button>
+</button> -->
 
       <!-- Navigation -->
       <nav class="space-y-2">

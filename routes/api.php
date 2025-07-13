@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use Symfony\Component\HttpKernel\Profiler\Profile;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CategoryController;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
@@ -36,14 +37,30 @@ Route::middleware('auth:sanctum')->get('/dashboard/expenses', [DashboardControll
 Route::middleware('auth:sanctum')->get('/dashboard/incomes', [DashboardController::class, 'incomes']);
 Route::middleware('auth:sanctum')->get('/dashboard/budget', [DashboardController::class, 'budget']);
 Route::middleware('auth:sanctum')->get('/dashboard/summary', [DashboardController::class, 'summary']);
-Route::middleware('auth:sanctum')->get('/dashboard/category-breakdown', [DashboardController::class, 'categoryBreakdown']);
+// categoryBreakdown
+Route::middleware('auth:sanctum')->get('/dashboard/
+category-breakdown', [DashboardController::class, 'categoryBreakdown']);
 Route::middleware('auth:sanctum')->get('/dashboard/monthly-trends', [DashboardController::class, 'monthlyTrends']);
+// budgetStatus
 Route::middleware('auth:sanctum')->get('/dashboard/budget-status', [DashboardController::class, 'budgetStatus']);
+
+// categories
+Route::middleware('auth:sanctum')->get('/categories', function (Request $request) {
+    return $request->user()->categories()->select('id', 'name')->get();
+});
+// transaction
 Route::middleware('auth:sanctum')->get('/dashboard/transactions', [DashboardController::class, 'transactions']);
 
 Route::middleware('auth:sanctum')->get('/dashboard/transactions/{id}', [DashboardController::class, 'transactionDetails']);
 Route::middleware('auth:sanctum')->get('/dashboard/transactions/{id}/edit', [DashboardController::class, 'transactionEdit']);
 Route::middleware('auth:sanctum')->post('/dashboard/transactions', [DashboardController::class, 'transactionStore']);
+
 Route::middleware('auth:sanctum')->put('/dashboard/transactions/{id}', [DashboardController::class, 'transactionUpdate']);
 Route::middleware('auth:sanctum')->delete('/dashboard/transactions/{id}', [DashboardController::class, 'transactionDelete']);
 Route::middleware('auth:sanctum')->get('/dashboard/transactions/{id}/delete', [DashboardController::class, 'transactionDelete']);
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+});

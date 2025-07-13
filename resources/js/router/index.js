@@ -35,7 +35,7 @@ const routes = [
       { path: 'reports', component: Reports },
       { path: 'settings', component: Settings },
       { path: 'profile', component: Profile }, 
-      // { path: 'Profile', component: EditProfile }, 
+      { path: 'transactions',  component: () => import('@/components/Transactions.vue'), }, 
   
     ],
     meta: { requiresAuth: true }

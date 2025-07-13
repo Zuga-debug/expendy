@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use App\Models\User;
+use App\Models\Category;
 
 class AuthController extends Controller
 {
@@ -44,14 +46,24 @@ class AuthController extends Controller
             'password' => 'required|string|min:3|confirmed'
         ]);
 
+        // 2. create the user
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password)
         ]);
 
-        $token = $user->createToken('expendy-token')->plainTextToken;
+         // 3. Assign default categories
+                $defaultCategories = Category::whereNull('user_id')->get();
 
+                foreach ($defaultCategories as $category) {
+                    $user->categories()->create(['name' => $category->name]);
+                }
+
+                // 4. create token
+             $token = $user->createToken('expendy-token')->plainTextToken;
+
+             // 5. return response
         return response()->json([
             'message' => 'Registration successful',
             'token' => $token,
