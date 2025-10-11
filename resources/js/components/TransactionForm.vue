@@ -1,17 +1,75 @@
+<template>
+  <form @submit.prevent="saveTransaction" class="space-y-4">
+    <div>
+      <label class="block mb-1 text-sm font-medium text-gray-700">Description</label>
+      <input v-model="form.description" type="text" class="w-full border rounded px-3 py-2" required />
+    </div>
+
+    <div>
+      <label class="block mb-1 text-sm font-medium text-gray-700">Amount</label>
+      <input v-model.number="form.amount" type="number" class="w-full border rounded px-3 py-2" required />
+    </div>
+
+    <div>
+      <label class="block mb-1 text-sm font-medium text-gray-700">Category</label>
+      <select v-model.number="form.category_id" class="w-full border rounded px-3 py-2" required>
+        <option :value="null" disabled>Select Category</option>
+        <option v-for="category in categories" :key="category.id" :value="category.id">
+          {{ category.name }}
+        </option>
+      </select>
+    </div>
+
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+      {{ isEditing ? 'Update' : 'Create' }} Transaction
+    </button>
+  </form>
+</template>
+
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
+
+const props = defineProps({
+  initialData: Object
+})
+
+const emit = defineEmits(['saved'])
 
 const form = ref({
   description: '',
   amount: 0,
-  category_id: null,
+  category_id: null
 })
 
+const isEditing = ref(false)
 const categories = ref([])
-const formErrors = ref({})
 
-const emit = defineEmits(['saved'])
+watch(
+  () => props.initialData,
+  (newVal) => {
+    if (newVal && newVal.id) {
+      form.value = {
+        description: newVal.description,
+        amount: newVal.amount,
+        category_id: newVal.category?.id ?? null
+      }
+      isEditing.value = true
+    } else {
+      resetForm()
+    }
+  },
+  { immediate: true }
+)
+
+const resetForm = () => {
+  form.value = {
+    description: '',
+    amount: 0,
+    category_id: null
+  }
+  isEditing.value = false
+}
 
 const fetchCategories = async () => {
   try {
@@ -27,81 +85,26 @@ const fetchCategories = async () => {
 }
 
 const saveTransaction = async () => {
-  formErrors.value = {}
+  const token = localStorage.getItem('auth_token')
+  const isEdit = isEditing.value && props.initialData?.id
 
-  if (!form.value.category_id) {
-    formErrors.value.category_id = 'Please select a category.'
-    return
-  }
-  console.log('Submitting form:', form.value);
+  const url = isEdit
+    ? `/api/dashboard/transactions/${props.initialData.id}`
+    : '/api/dashboard/transactions'
+
+  const method = isEdit ? 'put' : 'post'
 
   try {
-    await axios.post('/api/dashboard/transactions', form.value, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('auth_token')}`
-      }
+    await axios[method](url, form.value, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-
     emit('saved')
-
-    // Reset form and errors
-    form.value = {
-      description: '',
-      amount: 0,
-      category_id: null,
-    }
-    formErrors.value = {}
-  } catch (err) {
-    if (err.response?.data?.errors) {
-      formErrors.value = err.response.data.errors
-    }
-    console.error('Transaction save failed:', err)
+    resetForm()
+  } catch (error) {
+    console.error('Failed to save transaction', error)
+    alert('Error saving transaction')
   }
 }
 
 onMounted(fetchCategories)
 </script>
-
-<template>
-  <form @submit.prevent="saveTransaction" class="space-y-4">
-    <div>
-      <input
-        v-model="form.description"
-        placeholder="Description"
-        class="w-full px-4 py-2 border rounded"
-      />
-      <span v-if="formErrors.description" class="text-red-500 text-sm">
-        {{ formErrors.description }}
-      </span>
-    </div>
-
-    <div>
-      <input
-        v-model.number="form.amount"
-        type="number"
-        placeholder="Amount"
-        class="w-full px-4 py-2 border rounded"
-      />
-      <span v-if="formErrors.amount" class="text-red-500 text-sm">
-        {{ formErrors.amount }}
-      </span>
-    </div>
-
-    <div>
-      <select v-model.number="form.category_id" class="w-full px-4 py-2 border rounded">
-        <option :value="null" disabled>-- Select Category --</option>
-
-        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-            {{ cat.name }}
-        </option>
-      </select>
-      <span v-if="formErrors.category_id" class="text-red-500 text-sm">
-        {{ formErrors.category_id }}
-      </span>
-    </div>
-
-    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-      Save Transaction
-    </button>
-  </form>
-</template>

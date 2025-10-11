@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex">
-   
+  <div class="flex bg-gray-100 dark:bg-gray-900 min-h-screen h-screen overflow-hidden">
+    
     <!-- Mobile Backdrop -->
     <div
       v-if="showSidebar"
@@ -11,23 +11,18 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed md:relative z-50 md:z-auto transition-transform duration-300 bg-white dark:bg-gray-800 w-64 h-full p-4 shadow-lg',
+        'fixed md:relative top-0 left-0 z-50 md:z-auto h-full w-64 p-4 bg-white dark:bg-gray-800 shadow-lg overflow-y-auto',
         showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       ]"
     >
       <!-- User Info -->
-       
-       <div v-if="user" class="flex items-center space-x-3 mb-8">
+      <div v-if="user" class="flex items-center space-x-3 mb-8">
         <img :src="user?.avatar ? '/storage/' + user.avatar : '/default-avatar.png'" class="rounded-full w-10 h-10" />
         <div class="text-sm text-gray-800 dark:text-white">
           <p class="font-semibold">{{ user.name }}</p>
           <p class="text-gray-500 dark:text-gray-300 text-xs">{{ user.email }}</p>
         </div>
       </div>
-
-      <!-- <button @click="toggleDarkMode" class="mt-4 px-4 py-2 bg-gray-800 text-white rounded">
-  Toggle Dark Mode
-</button> -->
 
       <!-- Navigation -->
       <nav class="space-y-2">
@@ -39,14 +34,25 @@
           <LayoutDashboard class="w-5 h-5 mr-2" />
           Dashboard
         </router-link>
+
         <router-link
-          to="/expenses"
+          to="/transactions"
+          class="flex items-center px-3 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-gray-700 dark:text-gray-200"
+          active-class="bg-blue-500 text-white"
+        >
+          <CreditCard class="w-5 h-5 mr-2" />
+          Transactions
+        </router-link>
+
+        <router-link
+          to="/categories"
           class="flex items-center px-3 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-gray-700 dark:text-gray-200"
           active-class="bg-blue-500 text-white"
         >
           <Receipt class="w-5 h-5 mr-2" />
-          Expenses
+          Categories
         </router-link>
+
         <router-link
           to="/reports"
           class="flex items-center px-3 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-gray-700 dark:text-gray-200"
@@ -55,6 +61,7 @@
           <BarChart class="w-5 h-5 mr-2" />
           Reports
         </router-link>
+
         <router-link
           to="/settings"
           class="flex items-center px-3 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-gray-700 dark:text-gray-200"
@@ -63,15 +70,17 @@
           <Settings class="w-5 h-5 mr-2" />
           Settings
         </router-link>
-        <DarkModeToggle class="absolute top-4 right-4"/>
+
         <router-link
           to="/profile"
-         class="flex px-3 py-2 rounded hover:bg-blue-100 text-gray-700"
-         active-class="bg-blue-500 text-white"
+          class="flex px-3 py-2 rounded hover:bg-blue-100 text-gray-700"
+          active-class="bg-blue-500 text-white"
         >
-       EditProfile
-       </router-link>
+          Edit Profile
+        </router-link>
       </nav>
+
+      <DarkModeToggle class="mt-6" />
 
       <button
         @click="logout"
@@ -81,9 +90,9 @@
       </button>
     </aside>
 
-    <!-- Main content -->
-    <div class="flex-1 flex flex-col">
-      <!-- Topbar for mobile toggle -->
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col h-screen">
+      <!-- Mobile Topbar -->
       <header class="flex justify-between items-center p-4 bg-white dark:bg-gray-800 md:hidden shadow">
         <button @click="showSidebar = true">
           <Menu class="w-6 h-6 text-gray-800 dark:text-white" />
@@ -92,15 +101,23 @@
         <div></div>
       </header>
 
-      <main class="p-6 overflow-y-auto flex-1">
-        <router-view :key="$route.fullPath"/>
+      <!-- Router View Area -->
+      <main class="flex-1 overflow-y-auto p-6">
+        <router-view :key="$route.fullPath" />
       </main>
     </div>
   </div>
 </template>
 
 <script>
-import { LayoutDashboard, BarChart, Receipt, Settings, Menu } from 'lucide-vue-next';
+import {
+  LayoutDashboard,
+  BarChart,
+  Receipt,
+  Settings,
+  Menu,
+  CreditCard
+} from 'lucide-vue-next';
 import axios from 'axios';
 import DarkModeToggle from '../components/DarkModeToggle.vue';
 
@@ -111,6 +128,7 @@ export default {
     Receipt,
     Settings,
     Menu,
+    CreditCard,
     DarkModeToggle,
   },
   data() {
@@ -124,7 +142,6 @@ export default {
     this.initDarkMode();
   },
   methods: {
-    // 🔐 Fetch authenticated user info
     async initUser() {
       try {
         const token = localStorage.getItem('token');
@@ -148,24 +165,13 @@ export default {
       }
     },
 
-    // 🌙 Initialize dark mode based on preference or localStorage
     initDarkMode() {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = localStorage.getItem('theme');
       const isDark = theme === 'dark' || (!theme && prefersDark);
-
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      }
+      if (isDark) document.documentElement.classList.add('dark');
     },
 
-    // 🌗 Toggle dark/light mode
-    toggleDarkMode() {
-      const isDark = document.documentElement.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    },
-
-    // 🚪 Log user out
     logout() {
       localStorage.removeItem('token');
       this.$router.push('/login');
@@ -173,4 +179,3 @@ export default {
   }
 };
 </script>
-

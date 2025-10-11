@@ -6,6 +6,7 @@ import Reports from '../Pages/Reports.vue';
 import Expenses from '../Pages/Expenses.vue';
 import Settings from '../Pages/Settings.vue';
 import Profile from '../Pages/Profile.vue';
+import Categories from '../Pages/Categories.vue';
 // import EditProfile from '../Pages/EditProfile.vue';
 
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -32,10 +33,12 @@ const routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
       { path: 'expenses', component: Expenses },
+      { path: 'categories', component: Categories },
       { path: 'reports', component: Reports },
       { path: 'settings', component: Settings },
       { path: 'profile', component: Profile }, 
-      { path: 'transactions',  component: () => import('@/components/Transactions.vue'), }, 
+      { path: 'transactions',  component: () => import('@/components/Transactions.vue'), },  
+
   
     ],
     meta: { requiresAuth: true }
