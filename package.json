@@ -14,6 +14,7 @@
         "vue": "^3.4.0"
     },
     "dependencies": {
+        "@vueuse/core": "^14.0.0",
         "axios": "^1.8.4",
         "chart.js": "^4.5.0",
         "file-saver": "^2.0.5",

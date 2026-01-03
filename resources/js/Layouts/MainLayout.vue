@@ -144,7 +144,7 @@ export default {
   methods: {
     async initUser() {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         if (!token) throw new Error('No token found');
 
         const { data } = await axios.get('/api/user', {

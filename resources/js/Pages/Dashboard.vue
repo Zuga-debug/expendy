@@ -1,294 +1,194 @@
-<!-- <script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import PieChart from '@/components/PieChart.vue';
-import LineChart from '@/components/LineChart.vue';
-
-const summary = ref(null);
-const categoryChartData = ref(null);
-const monthlyChartData = ref(null);
-const transactions = ref([]);
-const loading = ref(true);
-
-const fetchSummary = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/summary', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    summary.value = res.data;
-  } catch (err) {
-    console.error('Summary error:', err);
-  }
-};
-
-const fetchCategoryBreakdown = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/category-breakdown', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    categoryChartData.value = {
-      labels: res.data.map(c => c.category?.name || 'Uncategorized'),
-      datasets: [{
-        data: res.data.map(c => c.total),
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-      }]
-    };
-  } catch (err) {
-    console.error('Category breakdown error:', err);
-  }
-};
-
-const fetchMonthlyTrends = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/monthly-trends', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    monthlyChartData.value = {
-      labels: res.data.map(m => `${m.month}/${m.year}`),
-      datasets: [{
-        label: 'Expenses',
-        data: res.data.map(m => m.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-      }]
-    };
-  } catch (err) {
-    console.error('Monthly trends error:', err);
-  }
-};
-
-const fetchTransactions = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/transactions', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    transactions.value = res.data.data || res.data;
-  } catch (err) {
-    console.error('Transactions error:', err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(async () => {
-  await Promise.all([
-    fetchSummary(),
-    fetchCategoryBreakdown(),
-    fetchMonthlyTrends(),
-    fetchTransactions()
-  ]);
-});
-</script>
-
 <template>
-  <div class="p-4">
-    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+  <div class="p-4 relative min-h-[600px]">
+    <!-- Spinner -->
+    <transition name="fade">
+      <div
+        v-show="loading"
+        class="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 z-50 rounded-lg"
+      >
+        <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    </transition>
 
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white shadow rounded p-4">
-          <p class="text-gray-500">Total Expenses</p>
-          <p class="text-xl font-semibold">₦{{ summary?.total_expenses ?? 0 }}</p>
-        </div>
-        <div class="bg-white shadow rounded p-4">
-          <p class="text-gray-500">Budget Limit</p>
-          <p class="text-xl font-semibold">₦{{ summary?.budget_limit ?? 0 }}</p>
-        </div>
-        <div class="bg-white shadow rounded p-4">
-          <p class="text-gray-500">Categories</p>
-          <p class="text-xl font-semibold">{{ summary?.categories_count ?? 0 }}</p>
-        </div>
-        <div class="bg-white shadow rounded p-4">
-          <p class="text-gray-500">Latest</p>
-          <p class="text-xl font-semibold">{{ summary?.latest_expenses.length ?? 0 }} Txns</p>
-        </div>
+    <!-- Refresh -->
+    <div class="flex justify-end mb-3">
+      <button
+        @click="refreshDashboard"
+        class="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+        :disabled="loading"
+      >
+        {{ loading ? 'Refreshing…' : 'Refresh' }}
+      </button>
+    </div>
+
+    <!-- Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <template v-if="loading">
+        <SkeletonCard v-for="n in 4" :key="n" />
+</template>
+  <template v-else>
+    <StatCard title="Total Expenses" :value="summary.total_expenses" />
+    <StatCard title="Budget Limit" :value="summary.budget_limit" />
+    <StatCard title="Categories" :value="summary.categories_count" />
+    <StatCard title="Remaining Budget" :value="budget.remaining_budget" green />
+  </template>
+</div>
+
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+        <h2 class="font-semibold mb-2">Category Breakdown</h2>
+        <canvas ref="categoryCanvas"></canvas>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-4 rounded shadow">
-          <h2 class="font-semibold mb-2">Category Breakdown</h2>
-          <PieChart v-if="categoryChartData" :data="categoryChartData" />
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-          <h2 class="font-semibold mb-2">Monthly Trends</h2>
-          <LineChart v-if="monthlyChartData" :data="monthlyChartData" />
-        </div>
-      </div>
-
-      <div class="bg-white p-4 rounded shadow">
-        <h2 class="font-semibold mb-2">Recent Transactions</h2>
-        <ul>
-          <li v-for="txn in trAansactions" :key="txn.id" class="flex justify-between border-b py-2">
-            <span>{{ txn.description }}</span>
-            <span class="text-blue-600 font-semibold">₦{{ txn.amount }}</span>
-          </li>
-        </ul>
+      <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+        <h2 class="font-semibold mb-2">Monthly Trends</h2>
+        <canvas ref="trendCanvas"></canvas>
       </div>
     </div>
-  </div>
-</template> -->
 
-<script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import PieChart from '@/components/PieChart.vue';
-import LineChart from '@/components/LineChart.vue';
-import { Wallet, TrendingUp, Tag, Clock } from 'lucide-vue-next';
-
-const summary = ref(null);
-const categoryChartData = ref(null);
-const monthlyChartData = ref(null);
-const transactions = ref([]);
-const loading = ref(true);
-
-const fetchSummary = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/summary', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    summary.value = res.data;
-  } catch (err) {
-    console.error('Summary error:', err);
-  }
-};
-
-const fetchCategoryBreakdown = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/category-breakdown', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    categoryChartData.value = {
-      labels: res.data.map(c => c.category?.name || 'Uncategorized'),
-      datasets: [{
-        data: res.data.map(c => c.total),
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
-      }]
-    };
-  } catch (err) {
-    console.error('Category breakdown error:', err);
-  }
-};
-
-const fetchMonthlyTrends = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/monthly-trends', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    monthlyChartData.value = {
-      labels: res.data.map(m => `${m.month}/${m.year}`),
-      datasets: [{
-        label: 'Expenses',
-        data: res.data.map(m => m.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-      }]
-    };
-  } catch (err) {
-    console.error('Monthly trends error:', err);
-  }
-};
-
-const fetchTransactions = async () => {
-  try {
-    const res = await axios.get('/api/dashboard/transactions', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
-    });
-    transactions.value = res.data.data || res.data;
-  } catch (err) {
-    console.error('Transactions error:', err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(async () => {
-  await Promise.all([
-    fetchSummary(),
-    fetchCategoryBreakdown(),
-    fetchMonthlyTrends(),
-    fetchTransactions()
-  ]);
-});
-</script>
-
-<template>
-  <div class="p-4">
-    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
-
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <h2 class="text-lg font-semibold mb-2">Summary</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white shadow rounded p-4 flex items-center gap-3">
-          <Wallet class="text-blue-500" />
-          <div>
-            <p class="text-gray-500">Total Expenses</p>
-            <p class="text-xl font-semibold">₦{{ summary?.total_expenses ?? 0 }}</p>
-          </div>
-        </div>
-        <div class="bg-white shadow rounded p-4 flex items-center gap-3" :class="summary?.total_expenses > summary?.budget_limit ? 'bg-red-50 border border-red-400' : ''">
-          <TrendingUp class="text-green-500" />
-          <div>
-            <p class="text-gray-500">Budget Limit</p>
-            <p class="text-xl font-semibold">₦{{ summary?.budget_limit ?? 0 }}</p>
-          </div>
-        </div>
-        <div class="bg-white shadow rounded p-4 flex items-center gap-3">
-          <Tag class="text-yellow-500" />
-          <div>
-            <p class="text-gray-500">Categories</p>
-            <p class="text-xl font-semibold">{{ summary?.categories_count ?? 0 }}</p>
-          </div>
-        </div>
-        <div class="bg-white shadow rounded p-4 flex items-center gap-3">
-          <Clock class="text-indigo-500" />
-          <div>
-            <p class="text-gray-500">Latest</p>
-            <p class="text-xl font-semibold">{{ summary?.latest_expenses.length ?? 0 }} Txns</p>
-          </div>
-        </div>
-      </div>
-
-      <h2 class="text-lg font-semibold mb-2">Trends</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white p-4 rounded shadow">
-          <h2 class="font-semibold mb-2">Category Breakdown</h2>
-          <PieChart v-if="categoryChartData" :data="categoryChartData" />
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-          <h2 class="font-semibold mb-2">Monthly Trends</h2>
-          <LineChart v-if="monthlyChartData" :data="monthlyChartData" />
-        </div>
-      </div>
-
-      <!-- <div class="bg-white p-4 rounded shadow">
-        <h2 class="font-semibold mb-2 flex justify-between items-center">
-          Recent Transactions
-          <router-link to="/transactions" class="text-sm text-blue-600 hover:underline">View All</router-link>
-        </h2>
-        <ul>
-          <li v-for="txn in transactions" :key="txn.id" class="flex justify-between border-b py-2">
-            <span>{{ txn.description }}</span>
-            <span class="text-blue-600 font-semibold">₦{{ txn.amount }}</span>
-          </li>
-        </ul>
-      </div> -->
-         <!-- Transactions List -->
-      <div class="bg-white p-4 rounded shadow">
-        <h2 class="font-semibold mb-2">Recent Transactions</h2>
-        <ul v-if="transactions.length > 0">
-          <li
-            v-for="txn in transactions"
+    <!-- Transactions -->
+    <div class="bg-white dark:bg-gray-800 p-4 rounded shadow">
+      <h2 class="font-semibold mb-4">Recent Transactions</h2>
+      <table class="w-full text-sm">
+        <tbody>
+          <tr
+            v-for="txn in summary.latest_expenses || []"
             :key="txn.id"
-            class="flex justify-between border-b py-2"
+            class="border-t dark:border-gray-600"
           >
-            <span>{{ txn.description }}</span>
-            <span class="text-blue-600 font-semibold">₦{{ txn.amount }}</span>
-          </li>
-        </ul>
-        <p v-else class="text-gray-500">No transactions found.</p>
-      </div>
+            <td class="p-2">{{ txn.description }}</td>
+            <td class="p-2">₦{{ txn.amount }}</td>
+            <td class="p-2">{{ new Date(txn.created_at).toLocaleDateString() }}</td>
+          </tr>
+          <tr v-if="!summary.latest_expenses?.length">
+            <td colspan="3" class="text-center text-gray-400 p-3">
+              No transactions yet
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
+
+<script setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import axios from 'axios'
+import Chart from 'chart.js/auto'
+import { useEventBus } from '@vueuse/core'
+import StatCard from '@/Components/StatCard.vue'
+import SkeletonCard from '@/Components/SkeletonCard.vue'
+
+const dashboardBus = useEventBus('dashboard:refresh')
+
+const loading = ref(true)
+
+const summary = ref({
+  total_expenses: 0,
+  budget_limit: 0,
+  categories_count: 0,
+  latest_expenses: []
+})
+
+const budget = ref({
+  remaining_budget: 0
+})
+
+const categoryCanvas = ref(null)
+const trendCanvas = ref(null)
+
+let categoryChart = null
+let trendChart = null
+
+const authHeader = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` }
+})
+
+const chartTextColor = () =>
+  document.documentElement.classList.contains('dark')
+    ? '#d1d5db'
+    : '#374151'
+
+/* ================= FETCH ================= */
+const fetchSummary = async () => {
+  const res = await axios.get('/api/dashboard/summary', authHeader())
+  summary.value = res.data.data
+}
+
+const fetchBudget = async () => {
+  const res = await axios.get('/api/dashboard/budget-status', authHeader())
+  budget.value = res.data.data
+}
+
+const fetchCategoryChart = async () => {
+  const res = await axios.get('/api/dashboard/category-breakdown', authHeader())
+  const rows = res.data.data ?? []
+
+  await nextTick()
+  categoryChart?.destroy()
+
+  categoryChart = new Chart(categoryCanvas.value, {
+    type: 'doughnut',
+    data: {
+      labels: rows.map(r => r.category_name),
+      datasets: [{ data: rows.map(r => r.total) }]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: chartTextColor() } }
+      }
+    }
+  })
+}
+
+const fetchTrendChart = async () => {
+  const res = await axios.get('/api/dashboard/monthly-trends', authHeader())
+  const rows = res.data.data.reverse()
+
+  await nextTick()
+  trendChart?.destroy()
+
+  trendChart = new Chart(trendCanvas.value, {
+    type: 'line',
+    data: {
+      labels: rows.map(r => r.label),
+      datasets: [{
+        data: rows.map(r => r.total),
+        borderColor: '#3b82f6',
+        fill: true
+      }]
+    },
+    options: {
+      scales: {
+        x: { ticks: { color: chartTextColor() } },
+        y: { ticks: { color: chartTextColor() }, beginAtZero: true }
+      }
+    }
+  })
+}
+
+/* ================= MASTER ================= */
+const fetchDashboard = async () => {
+  loading.value = true
+  await Promise.all([
+    fetchSummary(),
+    fetchBudget(),
+    fetchCategoryChart(),
+    fetchTrendChart()
+  ])
+  loading.value = false
+}
+
+/* ================= EVENTS ================= */
+dashboardBus.on(fetchDashboard)
+
+onMounted(fetchDashboard)
+
+onBeforeUnmount(() => {
+  categoryChart?.destroy()
+  trendChart?.destroy()
+})
+</script>
+

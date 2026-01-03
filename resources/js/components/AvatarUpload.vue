@@ -20,7 +20,7 @@ const uploadAvatar = async (e) => {
 
   const res = await axios.post("/api/profile/avatar", formData, {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
       "Content-Type": "multipart/form-data"
     }
   });

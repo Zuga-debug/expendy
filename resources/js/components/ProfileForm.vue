@@ -18,7 +18,7 @@
   const updateProfile = async () => {
     await axios.put('/api/user/profile', user, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
+        Authorization: `Bearer ${localStorage.getItem("auth_token")}`
       },
     });
     alert('Profile updated!');
