@@ -12,36 +12,40 @@ class DashboardController extends Controller
     /**
      * Return dashboard summary (total, categories, recent expenses, etc.)
      */
-   public function summary(Request $request)
-{
-    $user = $request->user();
+    public function summary(Request $request)
+    {
+        $user = $request->user();
 
-    $monthlyExpenses = $user->expenses()
-        ->whereYear('created_at', now()->year)
-        ->whereMonth('created_at', now()->month)
-        ->sum('amount');
+        $monthlyExpenses = $user->expenses()
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->sum('amount');
 
-    $budgetLimit = (float) ($user->budget_limit ?? 0);
+        $budgetLimit = (float) ($user->budget_limit ?? 0);
 
-    $data = [
-        'total_expenses'   => (float) $monthlyExpenses,
-        'budget_limit'    => $budgetLimit,
-        'remaining_budget'=> max($budgetLimit - $monthlyExpenses, 0),
-        'percentage_used' => $budgetLimit > 0
-            ? round(($monthlyExpenses / $budgetLimit) * 100, 2)
-            : 0,
-        'categories_count'=> $user->categories()->count(),
-        'latest_expenses' => $user->expenses()
-            ->latest()
-            ->take(5)
-            ->get(['id','description','amount','created_at','category_id']),
-    ];
+        $data = [
+            'total_expenses'   => (float) $monthlyExpenses,
+            'budget_limit' => Budget::where('user_id', $user->id)
+            ->where('month', now()->month)
+            ->where('year', now()->year)
+            ->value('amount') ?? 0,
 
-    return response()->json([
-        'status' => 'success',
-        'data' => $data
-    ]);
-}
+            'remaining_budget' => max($budgetLimit - $monthlyExpenses, 0),
+            'percentage_used' => $budgetLimit > 0
+                ? round(($monthlyExpenses / $budgetLimit) * 100, 2)
+                : 0,
+            'categories_count' => $user->categories()->count(),
+            'latest_expenses' => $user->expenses()
+                ->latest()
+                ->take(5)
+                ->get(['id', 'description', 'amount', 'created_at', 'category_id']),
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
 
 
     /**
@@ -70,35 +74,98 @@ class DashboardController extends Controller
         ]);
     }
 
+    // storeBudget
+public function storeBudget(Request $request)
+{
+    $request->validate([
+        'amount' => 'required|numeric|min:0',
+    ]);
+
+    $user = $request->user();
+
+    $budget = Budget::updateOrCreate(
+        [
+            'user_id' => $user->id,
+            'month' => now()->month,
+            'year' => now()->year,
+        ],
+        [
+            'amount' => $request->amount,
+        ]
+    );
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Budget saved successfully',
+        'data' => $budget,
+    ]);
+}
+
+// edit/delete budget
+/* LIST ALL BUDGETS */
+public function budgets(Request $request)
+{
+    return response()->json([
+        'data' => Budget::where('user_id', $request->user()->id)
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->get()
+    ]);
+}
+
+/* UPDATE */
+public function updateBudget(Request $request, Budget $budget)
+{
+    abort_if($budget->user_id !== $request->user()->id, 403);
+
+    $request->validate([
+        'amount' => 'required|numeric|min:0'
+    ]);
+
+    $budget->update(['amount' => $request->amount]);
+
+    return response()->json(['message' => 'Budget updated']);
+}
+
+/* DELETE */
+public function deleteBudget(Request $request, Budget $budget)
+{
+    abort_if($budget->user_id !== $request->user()->id, 403);
+
+    $budget->delete();
+
+    return response()->json(['message' => 'Budget deleted']);
+}
+
+
     public function budgetStatus(Request $request)
 {
     $user = $request->user();
 
-    if (!$user) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthenticated'
-        ], 401);
-    }
+    $budget = Budget::where('user_id', $user->id)
+        ->where('month', now()->month)
+        ->where('year', now()->year)
+        ->first();
 
-    $budgetLimit = (float) ($user->budget_limit ?? 0);
+    $limit = $budget?->amount ?? 0;
 
-    $monthlyExpenses = (float) $user->expenses()
+    $monthlyExpenses = $user->expenses()
         ->whereMonth('created_at', now()->month)
         ->sum('amount');
 
     return response()->json([
         'status' => 'success',
         'data' => [
-            'budget_limit' => $budgetLimit,
+            'budget_limit' => $limit,
             'total_expenses' => $monthlyExpenses,
-            'remaining_budget' => max($budgetLimit - $monthlyExpenses, 0),
-            'percentage_used' => $budgetLimit > 0
-                ? round(($monthlyExpenses / $budgetLimit) * 100, 2)
+            'remaining_budget' => max($limit - $monthlyExpenses, 0),
+            'percentage_used' => $limit > 0
+                ? round(($monthlyExpenses / $limit) * 100, 2)
                 : 0,
         ]
     ]);
 }
+
 
     /**
      * Return monthly expense trends

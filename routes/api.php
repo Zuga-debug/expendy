@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\BudgetController;
 
 // === Public Auth Routes ===
 Route::post('/login', [AuthController::class, 'login']);
@@ -42,4 +43,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/dashboard/transactions', [DashboardController::class, 'transactionStore']);
     Route::put('/dashboard/transactions/{id}', [DashboardController::class, 'transactionUpdate']);
     Route::delete('/dashboard/transactions/{id}', [DashboardController::class, 'transactionDelete']);
+    //BUDGET
+    Route::get('/budget/current', [BudgetController::class, 'current']);
+    Route::post('/budget', [BudgetController::class, 'store']);
+    Route::post('/dashboard/budget', [DashboardController::class, 'storeBudget']);
+    Route::put('/dashboard/budget/{budget}', [DashboardController::class, 'updateBudget']);
+    Route::delete('/dashboard/budget/{budget}', [DashboardController::class, 'deleteBudget']);
+
 });
